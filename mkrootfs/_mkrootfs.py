@@ -172,6 +172,18 @@ class RootFS(object):
 
         return True
 
+    def update_rootfs(self, udir):
+
+        if not os.path.exists(udir):
+            self.logger.error("%s is not a valid directory", udir)
+            return False
+
+        udir = os.path.abspath(udir)
+
+        self.sh.cmd("rsync -a %s/ %s" % (udir, self.idir))
+
+        return True
+
     def gen_image(self, type, name):
 
         out_dir = os.path.dirname(name)

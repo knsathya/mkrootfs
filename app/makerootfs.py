@@ -39,11 +39,12 @@ logger.setLevel(logging.INFO)
 @click.option('--zero-gadget/--no-zero-gadget', default=False, help='Add zero gadget support')
 @click.option('--out-type', type=click.Choice(['ext2', 'ext3', 'ext4', 'cpio']), help="Output image type")
 @click.option('--out-image', default=None, type=click.Path(exists=False), help='Output image file')
-@click.option('--kmod-dir', default=None, type=str, help='Kernel modules directory')
+@click.option('--kmod-dir', default=None, type=click.Path(exists=False), help='Kernel modules directory')
+@click.option('--sync-dir', default=None, type=click.Path(exists=False), help='Rootfs update directory')
 @click.argument('type', type=click.Choice(supported_rootfs.keys()))
 
 def cli(type, config_file, src_dir, install_dir, debug, adb_gadget, zero_gadget,
-        out_type, out_image, kmod_dir):
+        out_type, out_image, kmod_dir, sync_dir):
 
     if debug:
         logger.level = logging.DEBUG
@@ -64,6 +65,9 @@ def cli(type, config_file, src_dir, install_dir, debug, adb_gadget, zero_gadget,
 
     if kmod_dir is not None:
         obj.sync_kmodules(kmod_dir)
+
+    if sync_dir is not None:
+        obj.update_rootfs(sync_dir)
 
     obj.gen_image(out_type, out_image)
 

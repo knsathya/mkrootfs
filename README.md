@@ -19,6 +19,7 @@ Options:
                                   Output image type
   --out-image PATH                Output image file
   --kmod-dir TEXT                 Kernel modules directory
+  --sync-dir PATH                 Rootfs update directory
   --help                          Show this message and exit.
 
 ```
