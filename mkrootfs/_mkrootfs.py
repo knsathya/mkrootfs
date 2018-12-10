@@ -20,6 +20,7 @@ import os
 import logging
 from pyshell import PyShell, GitShell
 import pkg_resources
+import tempfile
 
 supported_rootfs = {
         "minrootfs" :   (None, None),
@@ -38,9 +39,9 @@ class RootFS(object):
             return
 
         self.type = type
-
         self.src = os.path.abspath(src)
         self.idir = os.path.abspath(idir)
+        self.build_init = False
 
         if not os.path.exists(self.src):
             self.logger.warning("Source dir %s does not exists, So creating it.", self.src)
@@ -54,19 +55,54 @@ class RootFS(object):
         self.sh = PyShell(wd=self.idir, stream_stdout=True, logger=logger)
         self.git = GitShell(wd=self.src, stream_stdout=True, logger=logger)
 
-        # Adb related properties
-        self.add_adb = False
 
-    def build(self, config=None):
-        if self.type == "busybox":
-            return self._build_busybox(config)
-        elif self.type  == "minrootfs":
-            return self._build_minrootfs()
+    def add_adb_gadget(self, params):
+        if self.type == "minrootfs":
+            self.logger.info("Adb is not supported in minrootfs")
+
+        script = pkg_resources.resource_filename('mkrootfs', 'scripts/adb-gadget.sh')
+
+        self.sh.cmd("%s %s %s" % (script, self.idir, ' '.join(params)))
+
+    def add_zero_gadget(self, params):
+        if self.type == "minrootfs":
+            self.logger.info("Zero is not supported in minrootfs")
+
+        script = pkg_resources.resource_filename('mkrootfs', 'scripts/zero-gadget.sh')
+
+        self.sh.cmd("%s %s" % (script, self.idir))
+
+    def add_services(self, slist):
+
+        if self.build_init is False:
+            self.logger.error("Please run build() before adding services")
+            return False
+
+        for service in slist:
+            if service[0] == "adb-gadget":
+                self.add_adb_gadget(service[1])
+            elif service[0] == "zero-gadget":
+                self.add_zero_gadget(service[1])
 
         return True
 
+    def build(self, config=None):
+
+        status = False
+        if self.type == "busybox":
+            status =  self._build_busybox(config)
+        elif self.type  == "minrootfs":
+            status =  self._build_minrootfs()
+
+        if status is True:
+            self.build_init = True
+
+        return status
+
     def _build_minrootfs(self):
+
         script = pkg_resources.resource_filename('mkrootfs', 'scripts/minrootfs.sh')
+
         self.sh.cmd("%s %s" % (script, self.idir))
 
         return True
@@ -81,42 +117,82 @@ class RootFS(object):
         if not os.path.exists(src_dir):
             os.makedirs(src_dir)
 
-        out_dir = os.path.join(self.src, "busybox", "out")
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
+        git = GitShell(wd=src_dir)
 
-        ret = self.git.add_remote('origin', supported_rootfs[self.type][0], wd=src_dir)
+        git.update_shell()
+
+        ret = git.add_remote('origin', supported_rootfs[self.type][0])
         if not ret[0]:
             self.logger.error("Add remote %s failed" %  supported_rootfs[self.type][0])
             return False
 
-        ret = self.git.cmd("fetch origin")
+        ret = git.cmd("fetch origin")
         if ret[0] != 0:
             self.logger.error("Git remote fetch failed")
             return False
 
-        ret = self.git.checkout('origin', supported_rootfs[self.type][1])
+        ret = git.checkout('origin', supported_rootfs[self.type][1])
         if not ret:
             self.logger.error("checkout branch %s failed", supported_rootfs[self.type][1])
             return ret
 
         if config is None:
-            ret = self.sh.cmd("make O=%s defconfig" % out_dir, wd=src_dir)
+            ret = self.sh.cmd("make defconfig", wd=src_dir)
             if ret[0] != 0:
                 self.logger.error("make defconfig failed")
                 return False
         else:
-            self.sh.cmd("cp -f %s %s/.config" % (config, out_dir))
+            self.sh.cmd("cp -f %s %s/.config" % (config, src_dir))
 
-        ret = self.sh.cmd("make", wd=out_dir)
+        ret = self.sh.cmd("make", wd=src_dir)
         if ret[0] != 0:
             self.logger.error("make busybox failed")
             return False
 
         script = pkg_resources.resource_filename('mkrootfs', 'scripts/busybox.sh')
-        self.sh.cmd("%s %s" % script, self.idir)
 
-        self.sh.cmd("make PREFIX=%s install" % self.idir , wd=out_dir)
+        self.sh.cmd("%s %s" % (script, self.idir))
+
+        self.sh.cmd("make PREFIX=%s install" % self.idir , wd=src_dir)
+
+        self.sh.cmd("make clean", wd=src_dir)
+
+        return True
+
+    def sync_kmodules(self, kmoddir):
+
+        if not os.path.exists(kmoddir):
+            self.logger.error("%s is not a valid directory", kmoddir)
+            return False
+
+        kmoddir = os.path.abspath(kmoddir)
+
+        self.sh.cmd("rm -fr %s/*" % os.path.join(self.idir, 'lib', 'modules'))
+        self.sh.cmd("rsync -a %s/ %s" % (kmoddir, os.path.join(self.idir, 'lib', 'modules')))
+
+        return True
+
+    def gen_image(self, type, name):
+
+        out_dir = os.path.dirname(name)
+
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        if type == 'cpio':
+            self.logger.debug("generating cpio rootfs image\n")
+            self.sh.cmd("find . | cpio --quiet -H newc -o | gzip -9 -n > %s" % (name), wd=out_dir)
+        elif type in ['ext2', 'ext3', 'ext4']:
+            self.logger.debug("generating rootfs %s image\n", type)
+            self.sh.cmd("dd if=/dev/zero of=%s bs=1M count=1024" % (name), wd=out_dir)
+            self.sh.cmd("mkfs.%s -F %s -L rootfs" % (type, name))
+            temp_dir = tempfile.mkdtemp()
+            self.sh.cmd("sudo mount -o loop,rw,sync %s %s" % (name, temp_dir))
+            self.sh.cmd("sudo /usr/bin/rsync -a -D %s/ %s" % (self.idir, temp_dir))
+            self.sh.cmd(("sudo umount %s" % temp_dir))
+            self.sh.cmd("rm -fr %s", temp_dir)
+
+
 
 
 
