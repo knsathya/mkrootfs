@@ -1,27 +1,39 @@
 #!/bin/bash
 
 out=$1
+adbd=$2
 
-if [ $# -ge 1 ]; then
-    MANUFACTURER=$2
+#############################################################
+# Update ADBD binary
+#############################################################
+
+echo "############### Copy ADBD binary ####################"
+
+cp $adbd $out/bin/adbd
+chmod 775 $out/bin/adbd
+
+#############################################################
+
+if [ $# -ge 2 ]; then
+    MANUFACTURER=$3
 else
     MANUFACTURER="Intel"
 fi
 
-if [ $# -ge 2 ]; then
-    PRODUCT=$3
+if [ $# -ge 3 ]; then
+    PRODUCT=$4
 else
     PRODUCT="KDEV"
 fi
 
-if [ $# -ge 3 ]; then
-    VENDORID=$4
+if [ $# -ge 4 ]; then
+    VENDORID=$5
 else
     VENDORID=0x8087
 fi
 
-if [ $# -ge 4 ]; then
-    PRODUCTID=$5
+if [ $# -ge 5 ]; then
+    PRODUCTID=$6
 else
     PRODUCTID=0x0a5f
 fi

@@ -57,12 +57,16 @@ class RootFS(object):
 
 
     def add_adb_gadget(self, params):
+
         if self.type == "minrootfs":
             self.logger.info("Adb is not supported in minrootfs")
 
+        adbd = pkg_resources.resource_filename('mkrootfs', 'bin/adb/adbd')
+
+        # Copy ADBD && Create configfs update file.
         script = pkg_resources.resource_filename('mkrootfs', 'scripts/adb-gadget.sh')
 
-        self.sh.cmd("%s %s %s" % (script, self.idir, ' '.join(params)))
+        self.sh.cmd("%s %s %s %s" % (script, adbd, self.idir, ' '.join(params)))
 
     def add_zero_gadget(self, params):
         if self.type == "minrootfs":
