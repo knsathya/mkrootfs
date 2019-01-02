@@ -153,7 +153,7 @@ class RootFS(object):
 
         self.sh.cmd("%s %s" % (script, self.idir))
 
-        self.sh.cmd("make PREFIX=%s install" % self.idir , wd=src_dir)
+        self.sh.cmd("make CONFIG_PREFIX=%s install" % self.idir , wd=src_dir)
 
         self.sh.cmd("make clean", wd=src_dir)
 
