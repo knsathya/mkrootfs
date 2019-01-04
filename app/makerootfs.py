@@ -44,7 +44,7 @@ def cli(ctx, rootfs_type, src_dir, rootfs_dir, debug):
     ctx.obj['OBJ'] = RootFS(ctx.obj['ROOTFS_TYPE'], ctx.obj['SRC_DIR'], ctx.obj['ROOTFS_DIR'], logger)
 
 
-@cli.command('build')
+@cli.command('build', short_help='Build rootfs')
 @click.option('--rootfs-config', '-c',
               default=pkg_resources.resource_filename('mkrootfs', 'configs/busybox/1_29_stable.config'),
               type=click.Path(exists=True), help='Rootfs config file')
@@ -55,7 +55,7 @@ def build(ctx, rootfs_config, rootfs_branch):
     ctx.obj['OBJ'].build(config=rootfs_config, branch=rootfs_branch)
 
 
-@cli.command('add-service')
+@cli.command('add-service', short_help='Add rootfs services')
 @click.option('--adb-gadget/--no-adb-gadget', default=False, help='Add adb gadget support')
 @click.option('--adb-params', nargs=4, default=[], type=str, help='Manufacturer, Product, VendorId, ProductId')
 @click.option('--zero-gadget/--no-zero-gadget', default=False, help='Add zero gadget support')
@@ -73,7 +73,7 @@ def add_service(ctx, adb_gadget, adb_params, zero_gadget):
         ctx.obj['OBJ'].add_services(services)
 
 
-@cli.command('gen-image')
+@cli.command('gen-image', short_help='Generate rootfs image')
 @click.option('--out-type', type=click.Choice(['ext2', 'ext3', 'ext4', 'cpio']), help="Output image type")
 @click.option('--out-image', default=None, type=click.Path(exists=False), help='Output image file')
 @click.pass_context
@@ -82,7 +82,7 @@ def gen_image(ctx, out_type, out_image):
     ctx.obj['OBJ'].gen_image(out_type, out_image)
 
 
-@cli.command('update')
+@cli.command('update', short_help='Update rootfs')
 @click.option('--update-spath', type=click.Path(), default=None, help='Source path for update')
 @click.option('--update-dpath', type=click.Path(), default=None, help='Destination path for update')
 @click.pass_context
@@ -91,7 +91,7 @@ def update(ctx, update_spath, update_dpath):
     ctx.obj['OBJ'].update_rootfs(update_spath, update_dpath)
 
 
-@cli.command()
+@cli.command(short_help='Show help contents')
 @click.pass_context
 def help(ctx):
     print(ctx.parent.get_help())
