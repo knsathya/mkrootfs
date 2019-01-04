@@ -5,21 +5,22 @@ Build your own rootfs image. Currently this app supports busybox or minrootfs ty
 Usage:
 
 ```
-makerootfs [OPTIONS] TYPE
+Usage: makerootfs [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
 
 Options:
-  -c, --config-file PATH          Rootfs config file
-  --debug / --no-debug
+  -t, --rootfs-type [busybox|minrootfs]
+                                  Rootfs type
   -s, --src-dir PATH
-  -i, --install-dir PATH
-  --adb-gadget TEXT...            Manufacturer, Product, VendorId, ProductId
-  --zero-gadget / --no-zero-gadget
-                                  Add zero gadget support
-  --out-type [ext2|ext3|ext4|cpio]
-                                  Output image type
-  --out-image PATH                Output image file
-  --kmod-dir TEXT                 Kernel modules directory
-  --sync-dir PATH                 Rootfs update directory
+  -i, --rootfs-dir PATH           rootfs dir
+  --debug / --no-debug
   --help                          Show this message and exit.
+
+Commands:
+  add-service  Add rootfs services
+  build        Build rootfs
+  gen-image    Generate rootfs image
+  help         Show help contents
+  update       Update rootfs
+
 
 ```

@@ -22,6 +22,8 @@ from pyshell import PyShell, GitShell
 import pkg_resources
 import tempfile
 
+valid_str = lambda x: True if x is not None and isinstance(x, basestring) and len(x) > 0 else False
+
 supported_rootfs = {
         "minrootfs" :   (None, None),
         "busybox"   :   ("git://git.busybox.net/busybox", "1_29_stable")
@@ -55,14 +57,29 @@ class RootFS(object):
         self.sh = PyShell(wd=self.idir, stream_stdout=True, logger=logger)
         self.git = GitShell(wd=self.src, stream_stdout=True, logger=logger)
 
+        for subdir in ['dev','etc', 'lib', 'proc', 'tmp', 'sys' ,'media', 'mnt' ,'opt'
+            ,'var' ,'home','root','usr','var']:
+            if os.path.exists(os.path.join(self.idir, subdir)):
+                self.build_init = True
+            else:
+                self.build_init = False
+                break
+
 
     def add_adb_gadget(self, params):
+
         if self.type == "minrootfs":
             self.logger.info("Adb is not supported in minrootfs")
 
+        adbd = pkg_resources.resource_filename('mkrootfs', 'bin/adb/adbd')
+
+        # Copy ADBD && Create configfs update file.
         script = pkg_resources.resource_filename('mkrootfs', 'scripts/adb-gadget.sh')
 
-        self.sh.cmd("%s %s %s" % (script, self.idir, ' '.join(params)))
+        if len(params) > 0:
+            self.sh.cmd("%s %s %s %s" % (script, self.idir, adbd,  ' '.join(params)))
+        else:
+            self.sh.cmd("%s %s %s" % (script, self.idir, adbd))
 
     def add_zero_gadget(self, params):
         if self.type == "minrootfs":
@@ -86,11 +103,11 @@ class RootFS(object):
 
         return True
 
-    def build(self, config=None):
+    def build(self, config=None, branch=None):
 
         status = False
         if self.type == "busybox":
-            status =  self._build_busybox(config)
+            status =  self._build_busybox(config, branch)
         elif self.type  == "minrootfs":
             status =  self._build_minrootfs()
 
@@ -107,13 +124,17 @@ class RootFS(object):
 
         return True
 
-    def _build_busybox(self, config=None):
+    def _build_busybox(self, config=None, branch=None):
 
         if config is not None and not os.path.exists(config):
             self.logger.error("Invalid config %s", config)
             return False
 
-        src_dir = os.path.join(self.src, "busybox", "src")
+        if branch is not None and not valid_str(branch):
+            self.logger.error("Invalid branch %s", branch)
+            return False
+
+        src_dir = os.path.join(self.src, "busybox")
         if not os.path.exists(src_dir):
             os.makedirs(src_dir)
 
@@ -131,9 +152,12 @@ class RootFS(object):
             self.logger.error("Git remote fetch failed")
             return False
 
-        ret = git.checkout('origin', supported_rootfs[self.type][1])
+        if branch is None:
+            branch = supported_rootfs[self.type][1]
+
+        ret = git.checkout('origin', branch)
         if not ret:
-            self.logger.error("checkout branch %s failed", supported_rootfs[self.type][1])
+            self.logger.error("checkout branch %s failed", branch)
             return ret
 
         if config is None:
@@ -159,30 +183,26 @@ class RootFS(object):
 
         return True
 
-    def sync_kmodules(self, kmoddir):
-
-        if not os.path.exists(kmoddir):
-            self.logger.error("%s is not a valid directory", kmoddir)
+    def update_rootfs(self, spath, dpath):
+        if spath is None or dpath is None or os.path.exists(spath):
+            self.logger.error("%s is not a valid file/directory", spath)
             return False
 
-        kmoddir = os.path.abspath(kmoddir)
+        spath = os.path.abspath(spath)
+        dpath = os.path.abspath(dpath)
 
-        self.sh.cmd("rm -fr %s/*" % os.path.join(self.idir, 'lib', 'modules'))
-        self.sh.cmd("rsync -a %s/ %s" % (kmoddir, os.path.join(self.idir, 'lib', 'modules')))
+        if os.path.isfile(spath):
+            self.sh.cmd("cp %s %s" % (spath, dpath))
+        else:
+            self.sh.cmd("rsync -a %s/ %s" % (spath, dpath))
 
         return True
 
-    def update_rootfs(self, udir):
-
-        if not os.path.exists(udir):
-            self.logger.error("%s is not a valid directory", udir)
-            return False
-
-        udir = os.path.abspath(udir)
-
-        self.sh.cmd("rsync -a %s/ %s" % (udir, self.idir))
-
-        return True
+    def set_hostname(self, hostname):
+        fobj = open(os.path.join(self.idir, 'etc', 'hostname'), 'w+')
+        fobj.truncate()
+        fobj.write(hostname)
+        fobj.close()
 
     def gen_image(self, type, name):
 
