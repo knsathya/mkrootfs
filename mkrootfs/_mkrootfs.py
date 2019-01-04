@@ -184,7 +184,7 @@ class RootFS(object):
         return True
 
     def update_rootfs(self, spath, dpath):
-        if spath is None or dpath is None or os.path.exists(spath):
+        if spath is None or dpath is None or not os.path.exists(spath):
             self.logger.error("%s is not a valid file/directory", spath)
             return False
 
