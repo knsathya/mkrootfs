@@ -19,58 +19,84 @@
 import os
 import click
 import logging
-from mkrootfs import RootFS, supported_rootfs
-import os
-import click
-import logging
+import pkg_resources
 from mkrootfs import RootFS, supported_rootfs
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(message)s')
 logger.setLevel(logging.INFO)
 
-
-@click.command()
-@click.option('--config-file', '-c', default=None, type=click.Path(exists=True), help='Rootfs config file')
-@click.option('--debug/--no-debug', default=False)
+@click.group(chain=True)
+@click.option('--rootfs-type', '-t', default='busybox', type=click.Choice(supported_rootfs.keys()), help='Rootfs type')
 @click.option('--src-dir', '-s', type=click.Path(), default=os.getcwd())
-@click.option('--install-dir', '-i', type=click.Path(), default=os.path.join(os.getcwd(), 'rootfs'))
-@click.option('--adb-gadget', nargs=4, default=None, type=str, help='Manufacturer, Product, VendorId, ProductId')
-@click.option('--zero-gadget/--no-zero-gadget', default=False, help='Add zero gadget support')
-@click.option('--out-type', type=click.Choice(['ext2', 'ext3', 'ext4', 'cpio']), help="Output image type")
-@click.option('--out-image', default=None, type=click.Path(exists=False), help='Output image file')
-@click.option('--kmod-dir', default=None, type=click.Path(exists=False), help='Kernel modules directory')
-@click.option('--sync-dir', default=None, type=click.Path(exists=False), help='Rootfs update directory')
-@click.argument('type', type=click.Choice(supported_rootfs.keys()))
-
-def cli(type, config_file, src_dir, install_dir, debug, adb_gadget, zero_gadget,
-        out_type, out_image, kmod_dir, sync_dir):
-
-    if debug:
+@click.option('--rootfs-dir', '-i', type=click.Path(), default=os.path.join(os.getcwd()), help='rootfs dir')
+@click.option('--debug/--no-debug', default=False)
+@click.pass_context
+def cli(ctx, rootfs_type, src_dir, rootfs_dir, debug):
+    ctx.obj = {}
+    ctx.obj['ROOTFS_TYPE'] = rootfs_type
+    ctx.obj['SRC_DIR'] = src_dir
+    ctx.obj['ROOTFS_DIR'] = rootfs_dir
+    ctx.obj['DEBUG'] = debug
+    if ctx.obj['DEBUG']:
         logger.level = logging.DEBUG
 
-    obj = RootFS(type, src_dir, install_dir, logger)
+    ctx.obj['OBJ'] = RootFS(ctx.obj['ROOTFS_TYPE'], ctx.obj['SRC_DIR'], ctx.obj['ROOTFS_DIR'], logger)
 
-    obj.build(config=config_file)
 
+@cli.command('build')
+@click.option('--rootfs-config', '-c',
+              default=pkg_resources.resource_filename('mkrootfs', 'configs/busybox/1_29_stable.config'),
+              type=click.Path(exists=True), help='Rootfs config file')
+@click.option('--rootfs-branch', '-b', default="1_29_stable", type=str, help='Rootfs git branch')
+@click.pass_context
+def build(ctx, rootfs_config, rootfs_branch):
+    click.echo('Building rootfs %s' % (ctx.obj['ROOTFS_TYPE']))
+    ctx.obj['OBJ'].build(config=rootfs_config, branch=rootfs_branch)
+
+
+@cli.command('add-service')
+@click.option('--adb-gadget/--no-adb-gadget', default=False, help='Add adb gadget support')
+@click.option('--adb-params', nargs=4, default=[], type=str, help='Manufacturer, Product, VendorId, ProductId')
+@click.option('--zero-gadget/--no-zero-gadget', default=False, help='Add zero gadget support')
+@click.pass_context
+def add_service(ctx, adb_gadget, adb_params, zero_gadget):
     services = []
 
-    if len(adb_gadget) > 0:
-        services.append(('adb-gadget', adb_gadget))
+    if adb_gadget:
+        services.append(('adb-gadget', adb_params))
 
     if zero_gadget:
         services.append(('zero-gadget', []))
 
-    obj.add_services(services)
-
-    if kmod_dir is not None:
-        obj.sync_kmodules(kmod_dir)
-
-    if sync_dir is not None:
-        obj.update_rootfs(sync_dir)
-
-    obj.gen_image(out_type, out_image)
+    if len(services) > 0:
+        ctx.obj['OBJ'].add_services(services)
 
 
+@cli.command('gen-image')
+@click.option('--out-type', type=click.Choice(['ext2', 'ext3', 'ext4', 'cpio']), help="Output image type")
+@click.option('--out-image', default=None, type=click.Path(exists=False), help='Output image file')
+@click.pass_context
+def gen_image(ctx, out_type, out_image):
+    click.echo('Generating rootfs image %s' % (out_image))
+    ctx.obj['OBJ'].gen_image(out_type, out_image)
 
+
+@cli.command('update')
+@click.option('--update-spath', type=click.Path(), default=None, help='Source path for update')
+@click.option('--update-dpath', type=click.Path(), default=None, help='Destination path for update')
+@click.pass_context
+def update(ctx, update_spath, update_dpath):
+    click.echo('Update rootfs %s %s' % (update_spath, update_dpath))
+    ctx.obj['OBJ'].update_rootfs(update_spath, update_dpath)
+
+
+@cli.command()
+@click.pass_context
+def help(ctx):
+    print(ctx.parent.get_help())
+
+
+if __name__ == '__main__':
+    cli(obj={})
 
