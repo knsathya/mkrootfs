@@ -213,7 +213,7 @@ class RootFS(object):
 
         if type == 'cpio':
             self.logger.debug("generating cpio rootfs image\n")
-            self.sh.cmd("find . | cpio --quiet -H newc -o | gzip -9 -n > %s" % (name), wd=out_dir)
+            self.sh.cmd("find . | cpio --null -ov --format=newc | gzip -9 > %s" % (name), wd=self.idir)
         elif type in ['ext2', 'ext3', 'ext4']:
             self.logger.debug("generating rootfs %s image\n", type)
             self.sh.cmd("dd if=/dev/zero of=%s bs=1M count=1024" % (name), wd=out_dir)
