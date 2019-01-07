@@ -45,10 +45,12 @@ setup(name='mkrootfs',
           'click',
           'pyshell',
           'jsonparser',
+          'klibs'
       ],
       dependency_links=[
           'git+https://github.com/knsathya/pyshell.git#egg=pyshell',
-          'git+https://github.com/knsathya/jsonparser.git#egg=jsonparser'
+          'git+https://github.com/knsathya/jsonparser.git#egg=jsonparser',
+          'git+https://github.com/knsathya/klibs.git#egg=klibs'
       ],
       test_suite='tests',
       tests_require=[
