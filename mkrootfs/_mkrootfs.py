@@ -176,7 +176,7 @@ class RootFS(object):
             cmd = ["make"]
 
             cmd.append("ARCH=%s" % self.arch)
-            if self.cc is not None:
+            if self.cc is not None and valid_str(self.cc):
                 cmd.append("CROSS_COMPILE=%s" % self.cc)
 
             if len(flags) > 0:
