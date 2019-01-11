@@ -94,11 +94,13 @@ cat > "$etc"/fstab << 'EOF' &&
 # device; this may be used with UUID= as a more robust way to name devices
 # that works even if disks are added and removed. See fstab(5).
 #
-# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# <file system> <mount point>   <type>  <options>                              <dump>  <pass>
 
-none            /proc           proc     defaults          0      2
-none            /sys            sysfs    defaults          0      1
-none            /dev            devtmpfs defaults          0      1
+none            /proc           proc     defaults                               0      2
+none            /sys            sysfs    defaults                               0      1
+none            /dev            devtmpfs defaults                               0      1
+none            /dev/pts        devpts   gid=5,mode=0620,noexec,nosuid          0      1
+none            /dev/shm        tmpfs    nodev,noexec,nosuid                    0      1
 EOF
 
 #setup init.d

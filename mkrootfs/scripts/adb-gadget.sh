@@ -35,7 +35,7 @@ fi
 if [ $# -ge 5 ]; then
     PRODUCTID=$6
 else
-    PRODUCTID=0x0a5f
+    PRODUCTID=0x09ef
 fi
 
 echo "############### ADB Gadget details ####################"

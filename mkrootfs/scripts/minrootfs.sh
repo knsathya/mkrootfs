@@ -8,6 +8,7 @@ rm -fr $out
 ############################################################
 echo "Create files and directories"
 mkdir -pv $out/{dev,etc,lib,proc,tmp,sys,media,mnt,opt,var,home,root,usr,var/run} &&
+mkdir -m 755 -pv $out/dev/{pts, shm} &&
 chmod a+rwxt "$out"/tmp &&
 mkdir -pv $out/etc/{init.d,network/if-{post-{up,down},pre-{up,down},up,down}.d} &&
 mkdir -pv $out/usr/{bin,sbin,lib,share/udhcpc} &&
@@ -30,6 +31,7 @@ sudo mknod -m 600 $dev_dir/tty1 c 4 1;
 sudo mknod -m 600 $dev_dir/ttyS0 c 4 64;
 sudo mknod -m 666 $dev_dir/tty c 5 0;
 sudo mknod -m 666 $dev_dir/console c 5 1;
+sudo mknod -m 666 $dev_dir/ptmx c 5 2;
 
 #############################################################
 #setup etc folder
@@ -119,6 +121,8 @@ parse_cmdline()
 /bin/mount -n -t proc     proc     /proc
 /bin/mount -n -t sysfs    sysfs    /sys
 /bin/mount -n -t tmpfs    tmpfs    /tmp
+/bin/mount -n -t devpts -o gid=5,mode=0620,noexec,nosuid devpts /dev/pts
+/bin/mount -n -t tmpfs  -o nodev,nosuid,noexec shm /dev/shm
 
 # setup networking
 ifconfig eth0 192.168.1.150
