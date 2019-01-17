@@ -137,12 +137,40 @@ cat > "$etc"/init.d/S01default << 'EOF' &&
 # Default boot initalization
 #
 
+makedir()
+{
+	dir_name=$1
+
+	if [ ! -d "$dir_name" ]; then
+		mkdir $dir_name
+	else
+	    echo $dir_name" exists"
+	fi
+
+	if [ $# -ge 1 ]; then
+	   chmod $2 $dir_name
+	fi
+
+	if [ $# -ge 2 ]; then
+	   chown $3 $dir_name
+	fi
+}
+
+mount_extrafs()
+{
+    /bin/mount -n -t devpts -o gid=5,mode=0620,noexec,nosuid devpts /dev/pts
+    /bin/mount -n -t tmpfs  -o nodev,nosuid,noexec shm /dev/shm
+}
+
 case "$1" in
   start)
  	echo "Mounting Filesystems..."
 	/bin/mount -a
 	echo "Setting hostname"
 	/bin/hostname -F /etc/hostname
+    makedir /dev/pts 0775 root:root
+    makedir /dev/shm 0775 root:root
+    mount_extrafs()
 	;;
   stop)
 	echo -n "Unmounting Filesystem..."

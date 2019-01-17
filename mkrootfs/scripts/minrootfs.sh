@@ -8,7 +8,7 @@ rm -fr $out
 ############################################################
 echo "Create files and directories"
 mkdir -pv $out/{dev,etc,lib,proc,tmp,sys,media,mnt,opt,var,home,root,usr,var/run} &&
-mkdir -m 755 -pv $out/dev/{pts, shm} &&
+mkdir -m 755 -pv $out/dev/{pts,shm} &&
 chmod a+rwxt "$out"/tmp &&
 mkdir -pv $out/etc/{init.d,network/if-{post-{up,down},pre-{up,down},up,down}.d} &&
 mkdir -pv $out/usr/{bin,sbin,lib,share/udhcpc} &&
@@ -115,12 +115,35 @@ parse_cmdline()
 	echo $value
 }
 
+makedir()
+{
+	dir_name=$1
+
+	if [ ! -d "$dir_name" ]; then
+		mkdir $dir_name
+	else
+	    echo $dir_name" exists"
+	fi
+
+	if [ $# -ge 1 ]; then
+	   chmod $2 $dir_name
+	fi
+
+	if [ $# -ge 2 ]; then
+	   chown $3 $dir_name
+	fi
+}
+
 # mount temporary filesystems
 
 /bin/mount -n -t devtmpfs devtmpfs /dev
 /bin/mount -n -t proc     proc     /proc
 /bin/mount -n -t sysfs    sysfs    /sys
 /bin/mount -n -t tmpfs    tmpfs    /tmp
+
+makedir /dev/pts 0775 root:root
+makedir /dev/shm 0775 root:root
+
 /bin/mount -n -t devpts -o gid=5,mode=0620,noexec,nosuid devpts /dev/pts
 /bin/mount -n -t tmpfs  -o nodev,nosuid,noexec shm /dev/shm
 
@@ -147,10 +170,14 @@ else
 		sleep 1
 	done
 	if [ -b "$root_dev" ]; then
+	    makedir /root/dev/pts 0775 root:root
+	    makedir /root/dev/shm 0775 root:root
 		/bin/mount $root_dev /root
 		/bin/mount --move /sys /root/sys
 		/bin/mount --move /proc /root/proc
 		/bin/mount --move /dev /root/dev
+		/bin/mount --move /dev/pts /root/dev/pts
+		/bin/mount --move /dev/shm /root/dev/shm
 		/bin/mount --move /tmp /root/tmp
 		exec /sbin/switch_root /root $new_init
 	fi
