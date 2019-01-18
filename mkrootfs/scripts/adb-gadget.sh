@@ -14,25 +14,25 @@ chmod 775 $out/bin/adbd
 
 #############################################################
 
-if [ $# -ge 2 ]; then
+if [ $# -ge 3 ]; then
     MANUFACTURER=$3
 else
     MANUFACTURER="Intel"
 fi
 
-if [ $# -ge 3 ]; then
+if [ $# -ge 4 ]; then
     PRODUCT=$4
 else
     PRODUCT="KDEV"
 fi
 
-if [ $# -ge 4 ]; then
+if [ $# -ge 5 ]; then
     VENDORID=$5
 else
     VENDORID=0x8087
 fi
 
-if [ $# -ge 5 ]; then
+if [ $# -ge 6 ]; then
     PRODUCTID=$6
 else
     PRODUCTID=0x09ef
@@ -79,11 +79,11 @@ makedir()
     	echo $dir_name" exists"
 	fi
 
-	if [ $# -ge 1 ]; then
+	if [ $# -ge 2 ]; then
 	   chmod $2 $dir_name
 	fi
 
-	if [ $# -ge 2 ]; then
+	if [ $# -ge 3 ]; then
 	   chown $3 $dir_name
 	fi
 

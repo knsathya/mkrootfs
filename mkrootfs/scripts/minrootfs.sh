@@ -125,11 +125,11 @@ makedir()
 	    echo $dir_name" exists"
 	fi
 
-	if [ $# -ge 1 ]; then
+	if [ $# -ge 2 ]; then
 	   chmod $2 $dir_name
 	fi
 
-	if [ $# -ge 2 ]; then
+	if [ $# -ge 3 ]; then
 	   chown $3 $dir_name
 	fi
 }

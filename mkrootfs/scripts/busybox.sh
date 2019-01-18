@@ -147,11 +147,11 @@ makedir()
 	    echo $dir_name" exists"
 	fi
 
-	if [ $# -ge 1 ]; then
+	if [ $# -ge 2 ]; then
 	   chmod $2 $dir_name
 	fi
 
-	if [ $# -ge 2 ]; then
+	if [ $# -ge 3 ]; then
 	   chown $3 $dir_name
 	fi
 }
@@ -168,9 +168,9 @@ case "$1" in
 	/bin/mount -a
 	echo "Setting hostname"
 	/bin/hostname -F /etc/hostname
-    makedir /dev/pts 0775 root:root
-    makedir /dev/shm 0775 root:root
-    mount_extrafs()
+	makedir /dev/pts 0775 root:root
+	makedir /dev/shm 0775 root:root
+	mount_extrafs()
 	;;
   stop)
 	echo -n "Unmounting Filesystem..."
