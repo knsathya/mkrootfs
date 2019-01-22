@@ -115,10 +115,14 @@ write /config/usb_gadget/g1/os_desc/b_vendor_code 0x1
 write /config/usb_gadget/g1/os_desc/qw_sign "MSFT100"
 write /config/usb_gadget/g1/configs/b.1/MaxPower 500
 
+mount -t functionfs adb /dev/usb-ffs/adb
+
 write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
 
 ln -s /config/usb_gadget/g1/configs/b.1 /config/usb_gadget/g1/os_desc/b.1
 ln -s /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+
+/bin/adbd &
 
 exit $?
 EOF
