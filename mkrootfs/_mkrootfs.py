@@ -262,6 +262,9 @@ class RootFS(object):
 
         return True
 
+    def install_rootfs(self, dpath):
+        self.sh.cmd("sudo /usr/bin/rsync -a -D %s/ %s" % (self.idir, dpath))
+
     def set_hostname(self, hostname):
         fobj = open(os.path.join(self.idir, 'etc', 'hostname'), 'w+')
         fobj.truncate()
